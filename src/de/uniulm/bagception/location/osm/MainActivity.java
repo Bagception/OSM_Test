@@ -16,14 +16,13 @@ public class MainActivity extends Activity implements LocationListener {
 	LocationListener locListener;
 	String latitude;
 	String longitude;
-	org.osmdroid.views.overlay.MyLocationOverlay locationOverlay = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 
 		super.onCreate(savedInstanceState);
 
-		final MapView mapView = new TouchMapView(this, 256);
+		final TouchMapView mapView = new TouchMapView(this, 256);
 		mapView.setClickable(true);
 		mapView.setTileSource(TileSourceFactory.MAPNIK);
 		mapView.setBuiltInZoomControls(true);
@@ -64,22 +63,12 @@ public class MainActivity extends Activity implements LocationListener {
 
 				double newLat = Double.parseDouble(latitude);
 				double newLon = Double.parseDouble(longitude);
-
-				mapView.getController().setCenter(new GeoPoint(newLat, newLon));
-
+				GeoPoint here = new GeoPoint(newLat, newLon);
+				mapView.getController().setCenter(here);
+				mapView.placeMarker(here);
+				locManager.removeUpdates(this);
 				
-				locationOverlay = new org.osmdroid.views.overlay.MyLocationOverlay(
-						getApplicationContext(), mapView);
-
-				mapView.getOverlays().add(locationOverlay);
-				locationOverlay.enableMyLocation();
-
-				locationOverlay.runOnFirstFix(new Runnable() {
-					public void run() {
-						mapView.getController().animateTo(
-								locationOverlay.getMyLocation());
-					}
-				});
+				
 			}
 		};
 
