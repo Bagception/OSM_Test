@@ -1,34 +1,98 @@
 package de.uniulm.bagception.location.osm;
 
+import org.osmdroid.api.IGeoPoint;
+import org.osmdroid.events.MapListener;
+import org.osmdroid.events.ScrollEvent;
+import org.osmdroid.events.ZoomEvent;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
-import org.osmdroid.views.MapView;
 
 import android.app.Activity;
+import android.graphics.Rect;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity implements LocationListener {
 
-	LocationManager locManager;
-	LocationListener locListener;
-	String latitude;
-	String longitude;
+	private LocationManager locManager;
+	private LocationListener locListener;
+	private String latitude;
+	private String longitude;
+	private TouchMapView mapView;
+	private TextView meterIndicatior;
 
+	private final int INIT_RADIUS=100;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 
 		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
 
-		final TouchMapView mapView = new TouchMapView(this, 256);
+		mapView = (TouchMapView)findViewById(R.id.map);
 		mapView.setClickable(true);
 		mapView.setTileSource(TileSourceFactory.MAPNIK);
 		mapView.setBuiltInZoomControls(true);
-	
+		meterIndicatior = (TextView) findViewById(R.id.meter);
+		final SeekBar meterSlider = (SeekBar) findViewById(R.id.meterSlider);
+		
+		meterSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+			
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {
+				
+			}
+			
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+				
+			}
+			
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress,
+					boolean fromUser) {
+				meterIndicatior.setText(""+progress);
+				mapView.setRadius(progress);
+			}
+		});
+		
 		locManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-
+		
+		meterSlider.setProgress(INIT_RADIUS);
+		
+		
+		
+		mapView.setMapListener(new MapListener() {
+			
+			@Override
+			public boolean onZoom(ZoomEvent arg0) {
+				Rect r = mapView.getProjection().getScreenRect();
+				IGeoPoint nullP = mapView.getProjection().fromPixels(0, 0);
+				IGeoPoint endP =  mapView.getProjection().fromPixels(r.width(),r.height());
+				float[] result = new float[3];
+				Location.distanceBetween(nullP.getLatitude(), nullP.getLongitude(), endP.getLatitude(), endP.getLongitude(), result);
+				
+				if (result[0] == 0.0f) return false;
+				meterSlider.setMax((int)(result[0]/2));
+				return false;
+			}
+			
+			@Override
+			public boolean onScroll(ScrollEvent arg0) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+		});
+		
+		
+		
 		mapView.getController().setZoom(18);
 
 		locListener = new LocationListener() {
@@ -77,7 +141,6 @@ public class MainActivity extends Activity implements LocationListener {
 		locManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
 				4000, 0, locListener);
 
-		setContentView(mapView);
 
 	}
 
@@ -103,5 +166,11 @@ public class MainActivity extends Activity implements LocationListener {
 	public void onStatusChanged(String provider, int status, Bundle extras) {
 		// TODO Auto-generated method stub
 
+	}
+	
+	public void onOkBtnClicked(View v){
+		//Todo finish activity with result;
+		
+		Toast.makeText(this, mapView.getGeoPoint().toString()+ " "+mapView.getRadius(), Toast.LENGTH_SHORT).show();
 	}
 }
